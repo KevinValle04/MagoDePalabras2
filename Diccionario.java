@@ -1,6 +1,4 @@
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.HashMap;
 import java.util.Set;
 
@@ -49,5 +47,22 @@ public class Diccionario {
 
     public Set<String> getPalabras() {
         return palabrasValidas.keySet();
+    }
+
+    public void agregarPalabra(String palabra) {
+        palabra = palabra.toLowerCase().trim();
+        if (!palabrasValidas.containsKey(palabra)) {
+            int puntaje = calcularPuntajePalabra(palabra);
+            palabrasValidas.put(palabra, puntaje);
+            guardarPalabraEnArchivo(palabra);
+        }
+    }
+
+    private void guardarPalabraEnArchivo(String palabra) {
+        try (PrintWriter out = new PrintWriter(new FileWriter("diccionario.txt", true))) {
+            out.println(palabra);
+        } catch (IOException e) {
+            System.err.println("Error al guardar palabra: " + e.getMessage());
+        }
     }
 }

@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 public class ElMagoDeLasPalabras extends JFrame {
     private List<Jugador> jugadores;
     private Diccionario diccionario;
+    private GruposPredefinidos gruposPredefinidos;
     private HashSet<String> palabrasUsadasGlobal;
     private Random random;
     private boolean modoExperto;
@@ -16,17 +17,21 @@ public class ElMagoDeLasPalabras extends JFrame {
     private int rondaActual = 1;
     private int turno = 0;
     private List<Character> letrasRonda;
+    private int jugadoresQuePasaron = 0;
 
     public ElMagoDeLasPalabras() {
         jugadores = new ArrayList<>();
         diccionario = new Diccionario();
+        gruposPredefinidos = new GruposPredefinidos("grupos.txt");
         palabrasUsadasGlobal = new HashSet<>();
         random = new Random();
         configurarGUI();
+        mostrarMenuInicial();
+        setVisible(true);
     }
 
     private void configurarGUI() {
-        setTitle("ElMagoDeLasPalabras");
+        setTitle("El Mago de las Palabras");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(700, 600);
         setLayout(new BorderLayout());
@@ -46,9 +51,45 @@ public class ElMagoDeLasPalabras extends JFrame {
         add(panelInferior, BorderLayout.SOUTH);
 
         botonEnviar.addActionListener(e -> procesarPalabra());
+    }
 
-        mostrarVentanaInicio();
-        setVisible(true);
+    private void mostrarMenuInicial() {
+        while (true) {
+            String[] opciones = {"Comenzar Juego", "Agregar Palabra al Diccionario", "Salir"};
+            int opcion = JOptionPane.showOptionDialog(this, "Selecciona una opción",
+                    "Menú Principal", JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE,
+                    null, opciones, opciones[0]);
+
+            if (opcion == 0) {
+                jugadores.clear();
+                rondaActual = 1;
+                turno = 0;
+                mostrarVentanaInicio();
+                break;
+            } else if (opcion == 1) {
+                agregarPalabraAlDiccionario();
+            } else {
+                System.exit(0);
+            }
+        }
+    }
+
+    private void agregarPalabraAlDiccionario() {
+        String nuevaPalabra = JOptionPane.showInputDialog(this, "Ingresa una palabra para agregar al diccionario:");
+        if (nuevaPalabra != null) {
+            nuevaPalabra = nuevaPalabra.trim().toLowerCase();
+            if (!nuevaPalabra.matches("[a-záéíóúñü]+")) {
+                JOptionPane.showMessageDialog(this, "Palabra inválida. Solo letras sin espacios ni símbolos.");
+                return;
+            }
+
+            if (diccionario.esValida(nuevaPalabra)) {
+                JOptionPane.showMessageDialog(this, "Esa palabra ya está en el diccionario.");
+            } else {
+                diccionario.agregarPalabra(nuevaPalabra);
+                JOptionPane.showMessageDialog(this, "Palabra agregada con éxito.");
+            }
+        }
     }
 
     private void mostrarVentanaInicio() {
@@ -75,7 +116,8 @@ public class ElMagoDeLasPalabras extends JFrame {
 
     private void iniciarRonda() {
         palabrasUsadasGlobal.clear();
-        letrasRonda = generarLetrasCompartidas();
+        letrasRonda = gruposPredefinidos.obtenerGrupoAleatorio(random);
+        jugadoresQuePasaron = 0;
         for (Jugador j : jugadores) {
             j.setLetras(new ArrayList<>(letrasRonda));
         }
@@ -97,29 +139,31 @@ public class ElMagoDeLasPalabras extends JFrame {
 
     private void procesarPalabra() {
         String palabra = campoPalabra.getText().trim().toLowerCase();
-        if (palabra.isEmpty()) {
-            turno++;
-            verificarContinuar();
-            return;
-        }
-
         Jugador jugador = jugadores.get(turno);
-        if (palabrasUsadasGlobal.contains(palabra)) {
+
+        if (palabra.isEmpty()) {
+            jugadoresQuePasaron++;
+            actualizarTexto(jugador.getNombre() + " ha pasado.");
+        } else if (palabrasUsadasGlobal.contains(palabra)) {
             actualizarTexto("¡Palabra ya usada!");
+            jugadoresQuePasaron = 0;
         } else if (!puedeFormarPalabra(palabra, jugador.getLetras())) {
             int penalizacion = modoExperto ? -10 : -5;
             jugador.agregarPuntaje(penalizacion);
             actualizarTexto("¡No puedes formar esa palabra! " + penalizacion + " puntos.");
+            jugadoresQuePasaron = 0;
         } else if (diccionario.esValida(palabra)) {
             int puntos = calcularPuntos(palabra);
             jugador.agregarPuntaje(puntos);
             jugador.agregarPalabra(palabra);
             palabrasUsadasGlobal.add(palabra);
             actualizarTexto("¡Palabra válida! +" + puntos + " puntos.");
+            jugadoresQuePasaron = 0;
         } else {
             int penalizacion = modoExperto ? -10 : -5;
             jugador.agregarPuntaje(penalizacion);
             actualizarTexto("¡Palabra inválida! " + penalizacion + " puntos.");
+            jugadoresQuePasaron = 0;
         }
 
         turno++;
@@ -127,17 +171,14 @@ public class ElMagoDeLasPalabras extends JFrame {
     }
 
     private void verificarContinuar() {
-        if (rondaActual > 3) {
-            mostrarGanador();
+        if (jugadoresQuePasaron >= jugadores.size()) {
+            mostrarResumenRonda();
+            rondaActual++;
+            if (rondaActual <= 3) iniciarRonda();
+            else mostrarGanador();
         } else {
-            if (turno >= jugadores.size()) {
-                mostrarResumenRonda();
-                rondaActual++;
-                if (rondaActual <= 3) iniciarRonda();
-                else mostrarGanador();
-            } else {
-                siguienteTurno();
-            }
+            if (turno >= jugadores.size()) turno = 0;
+            siguienteTurno();
         }
     }
 
@@ -156,27 +197,11 @@ public class ElMagoDeLasPalabras extends JFrame {
         Jugador ganador = Collections.max(jugadores, Comparator.comparingInt(Jugador::getPuntaje));
         JOptionPane.showMessageDialog(this,
                 "El ganador es " + ganador.getNombre() + " con " + ganador.getPuntaje() + " puntos!");
-        System.exit(0);
+        mostrarMenuInicial();
     }
 
     private void actualizarTexto(String texto) {
         areaJuego.append("\n" + texto);
-    }
-
-    private List<Character> generarLetrasCompartidas() {
-        List<Character> letras = new ArrayList<>();
-        String vocales = "aeiou";
-        String consonantes = "lnrstgmpbcdfhjkvz";
-        int cantidadVocales = modoExperto ? 3 : (4 + random.nextInt(2));
-
-        for (int i = 0; i < cantidadVocales; i++) {
-            letras.add(vocales.charAt(random.nextInt(vocales.length())));
-        }
-        while (letras.size() < 10) {
-            letras.add(consonantes.charAt(random.nextInt(consonantes.length())));
-        }
-        Collections.shuffle(letras);
-        return letras;
     }
 
     private boolean puedeFormarPalabra(String palabra, List<Character> disponibles) {
@@ -193,7 +218,7 @@ public class ElMagoDeLasPalabras extends JFrame {
     private int calcularPuntos(String palabra) {
         int puntos = 0;
         for (char c : palabra.toCharArray()) {
-            if ("aeiou".indexOf(c) >= 0) {
+            if ("aeiouáéíóúü".indexOf(c) >= 0) {
                 puntos += modoExperto ? 3 : 5;
             } else {
                 puntos += modoExperto ? 5 : 3;
@@ -206,3 +231,4 @@ public class ElMagoDeLasPalabras extends JFrame {
         SwingUtilities.invokeLater(ElMagoDeLasPalabras::new);
     }
 }
+
