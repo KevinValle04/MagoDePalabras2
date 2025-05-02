@@ -16,6 +16,7 @@ public class ElMagoDeLasPalabras extends JFrame {
     private int rondaActual = 1;
     private int turno = 0;
     private List<Character> letrasRonda;
+    private int turnosPasadosConsecutivos = 0;
 
     public ElMagoDeLasPalabras() {
         jugadores = new ArrayList<>();
@@ -83,6 +84,7 @@ public class ElMagoDeLasPalabras extends JFrame {
         botonAgregarDiccionario.addActionListener(e -> procesarPalabra(true));
         botonPasar.addActionListener(e -> {
             actualizarTexto(jugadores.get(turno).getNombre() + " pasó su turno.");
+            turnosPasadosConsecutivos++;
             avanzarTurno();
         });
 
@@ -168,6 +170,8 @@ public class ElMagoDeLasPalabras extends JFrame {
             jugador.agregarPalabra(palabra);
             palabrasUsadasGlobal.add(palabra);
             actualizarTexto("¡Palabra válida! +" + puntos + " puntos.");
+            turnosPasadosConsecutivos = 0;
+
         } else {
             int penalizacion = modoExperto ? -10 : -5;
             jugador.agregarPuntaje(penalizacion);
@@ -178,8 +182,9 @@ public class ElMagoDeLasPalabras extends JFrame {
     }
 
     private void avanzarTurno() {
-        turno++;
-        if (turno >= jugadores.size()) {
+        turno = (turno + 1) % jugadores.size(); // <--- seguir en círculo
+
+        if (turnosPasadosConsecutivos >= jugadores.size()) {
             mostrarResumenRonda();
             rondaActual++;
             if (rondaActual <= 3) iniciarRonda();
