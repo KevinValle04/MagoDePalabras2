@@ -1,4 +1,8 @@
 import javax.swing.*;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Style;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
@@ -11,7 +15,7 @@ public class ElMagoDeLasPalabras extends JFrame {
     private HashSet<String> palabrasUsadasGlobal;
     private Random random;
     private boolean modoExperto;
-    private JTextArea areaJuego;
+    private JTextPane areaJuego;
     private JTextField campoPalabra;
     private int rondaActual = 1;
     private int turno = 0;
@@ -40,11 +44,11 @@ public class ElMagoDeLasPalabras extends JFrame {
         setContentPane(fondo);
         fondo.setLayout(null);
 
-        areaJuego = new JTextArea();
+        areaJuego = new JTextPane();
         areaJuego.setEditable(false);
         areaJuego.setFont(new Font("Serif", Font.BOLD, 26));
         areaJuego.setOpaque(false);
-        areaJuego.setForeground(Color.BLACK);
+        areaJuego.setForeground(Color.BLACK); // ya no se usa directamente, pero no molesta
         JScrollPane scrollAreaJuego = new JScrollPane(areaJuego);
         scrollAreaJuego.setOpaque(false);
         scrollAreaJuego.getViewport().setOpaque(false);
@@ -73,7 +77,7 @@ public class ElMagoDeLasPalabras extends JFrame {
         botonAgregarDiccionario.addActionListener(e -> procesarPalabra(true));
         botonPasar.addActionListener(e -> {
             pasesConsecutivos++;
-            actualizarTexto(jugadores.get(turno).getNombre() + " pasó su turno.", Color.GRAY);
+            actualizarTexto(jugadores.get(turno).getNombre() + " pasó su turno.", Color.GRAY,true);
             avanzarTurno();
         });
 
@@ -120,7 +124,7 @@ public class ElMagoDeLasPalabras extends JFrame {
         for (Jugador j : jugadores) {
             j.setLetras(new ArrayList<>(letrasRonda));
         }
-        actualizarTexto("\n\n--- RONDA " + rondaActual + " ---\nLetras: " + letrasRonda, Color.BLACK);
+        actualizarTexto("\n\n--- RONDA " + rondaActual + " ---\nLetras: " + letrasRonda, Color.BLACK, true);
         turno = 0;
         pasesConsecutivos = 0;
         siguienteTurno();
@@ -130,7 +134,7 @@ public class ElMagoDeLasPalabras extends JFrame {
         Jugador actual = jugadores.get(turno);
         actualizarTexto("\nTurno de " + actual.getNombre() +
                 "\nLetras: " + actual.getLetras() +
-                "\nPalabras usadas: " + palabrasUsadasGlobal, Color.DARK_GRAY);
+                "\nPalabras usadas: " + palabrasUsadasGlobal, Color.DARK_GRAY, true);
         campoPalabra.setText("");
         campoPalabra.requestFocus();
     }
@@ -138,32 +142,32 @@ public class ElMagoDeLasPalabras extends JFrame {
     private void procesarPalabra(boolean agregarAlDiccionario) {
         String palabra = campoPalabra.getText().trim().toLowerCase();
         if (palabra.isEmpty()) {
-            actualizarTexto("¡No escribiste ninguna palabra!", Color.RED);
+            actualizarTexto("¡No escribiste ninguna palabra!", Color.RED,false);
             return;
         }
 
         Jugador jugador = jugadores.get(turno);
 
         if (palabrasUsadasGlobal.contains(palabra)) {
-            actualizarTexto("¡Palabra ya usada!", Color.RED);
+            actualizarTexto("¡Palabra ya usada!", Color.RED,false);
         } else if (!puedeFormarPalabra(palabra, jugador.getLetras())) {
             int penalizacion = modoExperto ? -10 : -5;
             jugador.agregarPuntaje(penalizacion);
-            actualizarTexto("¡No puedes formar esa palabra! " + penalizacion + " puntos.", Color.RED);
+            actualizarTexto("¡No puedes formar esa palabra! " + penalizacion + " puntos.", Color.RED,false);
         } else if (diccionario.esValida(palabra) || agregarAlDiccionario) {
             if (agregarAlDiccionario && !diccionario.esValida(palabra)) {
                 diccionario.agregarPalabra(palabra);
-                actualizarTexto("Palabra añadida al diccionario.", Color.GREEN);
+                actualizarTexto("Palabra añadida al diccionario.", Color.GREEN,false);
             }
             int puntos = calcularPuntos(palabra);
             jugador.agregarPuntaje(puntos);
             jugador.agregarPalabra(palabra);
             palabrasUsadasGlobal.add(palabra);
-            actualizarTexto("¡Palabra válida! +" + puntos + " puntos.", Color.GREEN);
+            actualizarTexto("¡Palabra válida! +" + puntos + " puntos.", Color.GREEN,false);
         } else {
             int penalizacion = modoExperto ? -10 : -5;
             jugador.agregarPuntaje(penalizacion);
-            actualizarTexto("¡Palabra inválida! " + penalizacion + " puntos.", Color.RED);
+            actualizarTexto("¡Palabra inválida! " + penalizacion + " puntos.", Color.RED,false);
         }
 
         pasesConsecutivos = 0;
@@ -195,7 +199,7 @@ public class ElMagoDeLasPalabras extends JFrame {
                     .append(" | Palabras: ").append(j.getPalabrasUsadas())
                     .append("\n");
         }
-        actualizarTexto(resumen.toString(), Color.BLACK);
+        actualizarTexto(resumen.toString(), Color.BLACK,true);
     }
 
     private void mostrarGanador() {
@@ -205,10 +209,19 @@ public class ElMagoDeLasPalabras extends JFrame {
         System.exit(0);
     }
 
-    private void actualizarTexto(String texto, Color color) {
-        areaJuego.setForeground(color);
-        areaJuego.append("\n" + texto);
+    private void actualizarTexto(String texto, Color color, boolean esNegrita) {
+        StyledDocument doc = areaJuego.getStyledDocument();
+        Style estilo = areaJuego.addStyle("Estilo", null);
+        StyleConstants.setForeground(estilo, color);
+        StyleConstants.setBold(estilo, esNegrita);
+
+        try {
+            doc.insertString(doc.getLength(), texto + "\n", estilo);
+        } catch (BadLocationException e) {
+            e.printStackTrace();
+        }
     }
+
 
     private List<Character> generarLetrasCompartidas() {
         List<Character> letras = new ArrayList<>();
