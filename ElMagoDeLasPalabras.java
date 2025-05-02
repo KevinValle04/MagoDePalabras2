@@ -15,8 +15,9 @@ public class ElMagoDeLasPalabras extends JFrame {
     private JTextField campoPalabra;
     private int rondaActual = 1;
     private int turno = 0;
+    private int pasesConsecutivos = 0;
     private List<Character> letrasRonda;
-    private int turnosPasadosConsecutivos = 0;
+    private JLabel fondo;
 
     public ElMagoDeLasPalabras() {
         jugadores = new ArrayList<>();
@@ -29,62 +30,50 @@ public class ElMagoDeLasPalabras extends JFrame {
     private void configurarGUI() {
         setTitle("El Mago de las Palabras");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(900, 700);
-        setLayout(new BorderLayout());
-        setLocationRelativeTo(null); // Centrar la ventana
+        setSize(1000, 750);
+        setLayout(null);
+        setLocationRelativeTo(null);
 
-        // Panel principal
-        JPanel panelPrincipal = new JPanel();
-        panelPrincipal.setLayout(new BorderLayout());
-        panelPrincipal.setBackground(new Color(240, 240, 240));
+        ImageIcon imagenFondo = new ImageIcon("fondo.jpg");
+        fondo = new JLabel(imagenFondo);
+        fondo.setBounds(0, 0, 1000, 750);
+        setContentPane(fondo);
+        fondo.setLayout(null);
 
-        // Área de juego
         areaJuego = new JTextArea();
         areaJuego.setEditable(false);
-        areaJuego.setFont(new Font("Monospaced", Font.BOLD, 16));
-        areaJuego.setForeground(new Color(0, 0, 0));
-        areaJuego.setBackground(new Color(255, 255, 255));
+        areaJuego.setFont(new Font("Serif", Font.BOLD, 26));
+        areaJuego.setOpaque(false);
+        areaJuego.setForeground(Color.BLACK);
         JScrollPane scrollAreaJuego = new JScrollPane(areaJuego);
-        panelPrincipal.add(scrollAreaJuego, BorderLayout.CENTER);
+        scrollAreaJuego.setOpaque(false);
+        scrollAreaJuego.getViewport().setOpaque(false);
+        scrollAreaJuego.setBounds(50, 30, 880, 400);
+        fondo.add(scrollAreaJuego);
 
-        // Panel inferior
-        JPanel panelInferior = new JPanel();
-        panelInferior.setLayout(new BorderLayout());
-        panelInferior.setBackground(new Color(245, 245, 245));
-
-        // Campo para ingresar palabra
         campoPalabra = new JTextField();
-        campoPalabra.setFont(new Font("Arial", Font.PLAIN, 24));
-        campoPalabra.setBackground(new Color(255, 255, 255));
-        campoPalabra.setForeground(new Color(0, 0, 0));
-        campoPalabra.setBorder(BorderFactory.createLineBorder(new Color(0, 0, 0), 2));
-        panelInferior.add(campoPalabra, BorderLayout.CENTER);
+        campoPalabra.setFont(new Font("Serif", Font.BOLD, 30));
+        campoPalabra.setBounds(50, 450, 880, 50);
+        fondo.add(campoPalabra);
 
-        // Panel de botones
-        JPanel panelBotones = new JPanel();
-        panelBotones.setLayout(new GridLayout(1, 3, 10, 10));
-        panelBotones.setBackground(new Color(245, 245, 245));
+        JPanel panelBotones = new JPanel(new GridLayout(1, 3, 20, 10));
+        panelBotones.setBounds(50, 520, 880, 60);
+        panelBotones.setOpaque(false);
 
-        // Botones
-        JButton botonEnviar = crearBoton("Enviar");
+        JButton botonEnviar = crearBoton("Enviar Palabra");
         JButton botonAgregarDiccionario = crearBoton("Agregar al Diccionario");
         JButton botonPasar = crearBoton("Pasar Turno");
 
         panelBotones.add(botonEnviar);
         panelBotones.add(botonAgregarDiccionario);
         panelBotones.add(botonPasar);
+        fondo.add(panelBotones);
 
-        panelInferior.add(panelBotones, BorderLayout.SOUTH);
-        panelPrincipal.add(panelInferior, BorderLayout.SOUTH);
-
-        add(panelPrincipal, BorderLayout.CENTER);
-
-        // Eventos de botones
         botonEnviar.addActionListener(e -> procesarPalabra(false));
         botonAgregarDiccionario.addActionListener(e -> procesarPalabra(true));
         botonPasar.addActionListener(e -> {
-            actualizarTexto(jugadores.get(turno).getNombre() + " pasó su turno.");
-            turnosPasadosConsecutivos++;
+            pasesConsecutivos++;
+            actualizarTexto(jugadores.get(turno).getNombre() + " pasó su turno.", Color.GRAY);
             avanzarTurno();
         });
 
@@ -94,11 +83,11 @@ public class ElMagoDeLasPalabras extends JFrame {
 
     private JButton crearBoton(String texto) {
         JButton boton = new JButton(texto);
-        boton.setFont(new Font("Arial", Font.BOLD, 16));
-        boton.setBackground(new Color(100, 149, 237));
-        boton.setForeground(Color.WHITE);
+        boton.setFont(new Font("Serif", Font.BOLD, 22));
+        boton.setBackground(new Color(210, 180, 140));
+        boton.setForeground(Color.BLACK);
         boton.setFocusPainted(false);
-        boton.setBorder(BorderFactory.createLineBorder(new Color(0, 0, 0), 2));
+        boton.setBorder(BorderFactory.createLineBorder(new Color(120, 60, 20), 3));
         boton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return boton;
     }
@@ -131,8 +120,9 @@ public class ElMagoDeLasPalabras extends JFrame {
         for (Jugador j : jugadores) {
             j.setLetras(new ArrayList<>(letrasRonda));
         }
-        actualizarTexto("\n\n--- RONDA " + rondaActual + " ---\nLetras: " + letrasRonda);
+        actualizarTexto("\n\n--- RONDA " + rondaActual + " ---\nLetras: " + letrasRonda, Color.BLACK);
         turno = 0;
+        pasesConsecutivos = 0;
         siguienteTurno();
     }
 
@@ -140,7 +130,7 @@ public class ElMagoDeLasPalabras extends JFrame {
         Jugador actual = jugadores.get(turno);
         actualizarTexto("\nTurno de " + actual.getNombre() +
                 "\nLetras: " + actual.getLetras() +
-                "\nPalabras usadas: " + palabrasUsadasGlobal);
+                "\nPalabras usadas: " + palabrasUsadasGlobal, Color.DARK_GRAY);
         campoPalabra.setText("");
         campoPalabra.requestFocus();
     }
@@ -148,47 +138,50 @@ public class ElMagoDeLasPalabras extends JFrame {
     private void procesarPalabra(boolean agregarAlDiccionario) {
         String palabra = campoPalabra.getText().trim().toLowerCase();
         if (palabra.isEmpty()) {
-            actualizarTexto("¡No escribiste ninguna palabra!");
+            actualizarTexto("¡No escribiste ninguna palabra!", Color.RED);
             return;
         }
 
         Jugador jugador = jugadores.get(turno);
 
         if (palabrasUsadasGlobal.contains(palabra)) {
-            actualizarTexto("¡Palabra ya usada!");
+            actualizarTexto("¡Palabra ya usada!", Color.RED);
         } else if (!puedeFormarPalabra(palabra, jugador.getLetras())) {
             int penalizacion = modoExperto ? -10 : -5;
             jugador.agregarPuntaje(penalizacion);
-            actualizarTexto("¡No puedes formar esa palabra! " + penalizacion + " puntos.");
+            actualizarTexto("¡No puedes formar esa palabra! " + penalizacion + " puntos.", Color.RED);
         } else if (diccionario.esValida(palabra) || agregarAlDiccionario) {
             if (agregarAlDiccionario && !diccionario.esValida(palabra)) {
                 diccionario.agregarPalabra(palabra);
-                actualizarTexto("Palabra añadida al diccionario.");
+                actualizarTexto("Palabra añadida al diccionario.", Color.GREEN);
             }
             int puntos = calcularPuntos(palabra);
             jugador.agregarPuntaje(puntos);
             jugador.agregarPalabra(palabra);
             palabrasUsadasGlobal.add(palabra);
-            actualizarTexto("¡Palabra válida! +" + puntos + " puntos.");
-            turnosPasadosConsecutivos = 0;
-
+            actualizarTexto("¡Palabra válida! +" + puntos + " puntos.", Color.GREEN);
         } else {
             int penalizacion = modoExperto ? -10 : -5;
             jugador.agregarPuntaje(penalizacion);
-            actualizarTexto("¡Palabra inválida! " + penalizacion + " puntos.");
+            actualizarTexto("¡Palabra inválida! " + penalizacion + " puntos.", Color.RED);
         }
 
+        pasesConsecutivos = 0;
         avanzarTurno();
     }
 
     private void avanzarTurno() {
-        turno = (turno + 1) % jugadores.size(); // <--- seguir en círculo
-
-        if (turnosPasadosConsecutivos >= jugadores.size()) {
-            mostrarResumenRonda();
-            rondaActual++;
-            if (rondaActual <= 3) iniciarRonda();
-            else mostrarGanador();
+        turno++;
+        if (turno >= jugadores.size()) {
+            if (pasesConsecutivos >= jugadores.size()) {
+                mostrarResumenRonda();
+                rondaActual++;
+                if (rondaActual <= 3) iniciarRonda();
+                else mostrarGanador();
+            } else {
+                turno = 0;
+                siguienteTurno();
+            }
         } else {
             siguienteTurno();
         }
@@ -202,7 +195,7 @@ public class ElMagoDeLasPalabras extends JFrame {
                     .append(" | Palabras: ").append(j.getPalabrasUsadas())
                     .append("\n");
         }
-        actualizarTexto(resumen.toString());
+        actualizarTexto(resumen.toString(), Color.BLACK);
     }
 
     private void mostrarGanador() {
@@ -212,7 +205,8 @@ public class ElMagoDeLasPalabras extends JFrame {
         System.exit(0);
     }
 
-    private void actualizarTexto(String texto) {
+    private void actualizarTexto(String texto, Color color) {
+        areaJuego.setForeground(color);
         areaJuego.append("\n" + texto);
     }
 
@@ -259,3 +253,4 @@ public class ElMagoDeLasPalabras extends JFrame {
         SwingUtilities.invokeLater(ElMagoDeLasPalabras::new);
     }
 }
+
