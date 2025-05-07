@@ -41,4 +41,9 @@ public class Jugador {
     public int getPuntaje() {
         return puntaje;
     }
+
+    public void limpiarPalabrasUsadas() {
+        palabrasUsadas.clear();
+    }
+
 }

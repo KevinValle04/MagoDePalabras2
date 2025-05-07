@@ -114,6 +114,13 @@ public class ElMagoDeLasPalabras extends JFrame {
             String nombre = JOptionPane.showInputDialog("Nombre del jugador " + (i + 1) + ":");
             jugadores.add(new Jugador(nombre));
         }
+        String mensajePuntaje = modoExperto
+                ? "Modo Experto:\nRecuerda que los puntajes de cada letra son los siguientes: \nVocales = 3 puntos\nConsonantes = 2 puntos"
+                : "Modo Normal:\nRecuerda que los puntajes de cada letra son los siguientes: \nVocales = 5 puntos\nConsonantes = 3 puntos";
+
+        actualizarTexto(mensajePuntaje, Color.BLACK, true);
+
+
 
         iniciarRonda();
     }
@@ -124,6 +131,10 @@ public class ElMagoDeLasPalabras extends JFrame {
         for (Jugador j : jugadores) {
             j.setLetras(new ArrayList<>(letrasRonda));
         }
+        for (Jugador j : jugadores) {
+            j.limpiarPalabrasUsadas();
+        }
+
         actualizarTexto("\n\n--- RONDA " + rondaActual + " ---\nLetras: " + letrasRonda, Color.BLACK, true);
         turno = 0;
         pasesConsecutivos = 0;
@@ -132,9 +143,20 @@ public class ElMagoDeLasPalabras extends JFrame {
 
     private void siguienteTurno() {
         Jugador actual = jugadores.get(turno);
-        actualizarTexto("\nTurno de " + actual.getNombre() +
-                "\nLetras: " + actual.getLetras() +
-                "\nPalabras usadas: " + palabrasUsadasGlobal, Color.DARK_GRAY, true);
+        StringBuilder estadoJugadores = new StringBuilder();
+        for (Jugador j : jugadores) {
+            estadoJugadores.append(j.getNombre())
+                    .append(": ")
+                    .append(j.getPalabrasUsadas())
+                    .append(" | Puntos: ")
+                    .append(j.getPuntaje())
+                    .append("\n");
+        }
+
+        actualizarTexto("\nTurno de " + actual.getNombre(), Color.BLACK, true);
+        actualizarTexto("Letras: " + actual.getLetras(), Color.BLACK, true);
+        actualizarTexto("Marcador:\n" + estadoJugadores, Color.BLACK, true);
+
         campoPalabra.setText("");
         campoPalabra.requestFocus();
     }
@@ -149,25 +171,28 @@ public class ElMagoDeLasPalabras extends JFrame {
         Jugador jugador = jugadores.get(turno);
 
         if (palabrasUsadasGlobal.contains(palabra)) {
-            actualizarTexto("¡Palabra ya usada!", Color.RED,false);
+            actualizarTexto("¡La Palabra \"" + palabra + "\" ya fue  usada!", Color.RED,true);
+            actualizarTexto("Intenta de nuevo", Color.RED,true);
+            return;
         } else if (!puedeFormarPalabra(palabra, jugador.getLetras())) {
             int penalizacion = modoExperto ? -10 : -5;
             jugador.agregarPuntaje(penalizacion);
-            actualizarTexto("¡No puedes formar esa palabra! " + penalizacion + " puntos.", Color.RED,false);
+            actualizarTexto("¡No puedes formar esa palabra! " + penalizacion + " puntos.", Color.RED,true);
         } else if (diccionario.esValida(palabra) || agregarAlDiccionario) {
             if (agregarAlDiccionario && !diccionario.esValida(palabra)) {
                 diccionario.agregarPalabra(palabra);
-                actualizarTexto("Palabra añadida al diccionario.", Color.GREEN,false);
+                actualizarTexto("Palabra añadida al diccionario.", Color.BLUE,true);
             }
             int puntos = calcularPuntos(palabra);
             jugador.agregarPuntaje(puntos);
             jugador.agregarPalabra(palabra);
             palabrasUsadasGlobal.add(palabra);
-            actualizarTexto("¡Palabra válida! +" + puntos + " puntos.", Color.GREEN,false);
+            actualizarTexto("La palabra \"" + palabra + "\" es válida. ¡Sumas " + puntos + " puntos!", Color.BLUE, true);
+
         } else {
             int penalizacion = modoExperto ? -10 : -5;
             jugador.agregarPuntaje(penalizacion);
-            actualizarTexto("¡Palabra inválida! " + penalizacion + " puntos.", Color.RED,false);
+            actualizarTexto("La Palabra \"" + palabra + "\" es inválida. Pierdes " + penalizacion + " puntos...", Color.RED,true);
         }
 
         pasesConsecutivos = 0;
@@ -256,7 +281,7 @@ public class ElMagoDeLasPalabras extends JFrame {
             if ("aeiou".indexOf(c) >= 0) {
                 puntos += modoExperto ? 3 : 5;
             } else {
-                puntos += modoExperto ? 5 : 3;
+                puntos += modoExperto ? 2 : 3;
             }
         }
         return puntos;
